@@ -1958,24 +1958,6 @@ def main():
                     
                     st.plotly_chart(fig, use_container_width=True)
                 
-                # Weekly detailed breakdown
-                st.markdown("#### 📋 Weekly Detailed Performance")
-                
-                # Style the detailed table
-                styled_weekly_df = weekly_performance_df[['Week', 'Athlete', 'Points', 'Cycling_Miles', 'Activities']].copy()
-                styled_weekly_df.columns = ['Week', 'Athlete', 'Points', 'Cycling Miles', 'Activities']
-                
-                st.dataframe(
-                    styled_weekly_df,
-                    use_container_width=True,
-                    height=400,
-                    column_config={
-                        "Points": st.column_config.NumberColumn("Points", format="%d"),
-                        "Cycling Miles": st.column_config.NumberColumn("Cycling Miles", format="%.1f"),
-                        "Activities": st.column_config.NumberColumn("Activities", format="%d")
-                    }
-                )
-                
             else:
                 # Show specific week details
                 week_num = int(selected_week.split()[1])
@@ -2348,7 +2330,7 @@ def main():
     
     # Epic title
     st.markdown("""
-    <div class="epic-title">🏆 GRAN FONDO STRAVA CHAMPIONSHIP 🏆</div>
+    <div class="epic-title">GRAN FONDO STRAVA CHAMPIONSHIP 🏆</div>
     <div class="epic-subtitle">Battle for Cycling Supremacy</div>
     """, unsafe_allow_html=True)
     
