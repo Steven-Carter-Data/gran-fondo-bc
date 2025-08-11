@@ -1923,6 +1923,9 @@ def main():
                     'Avg Points/Week': (total_points / len(available_weeks)).round(1)
                 })
                 
+                # Sort by Total Points (highest to lowest)
+                summary_df = summary_df.sort_values('Total Points', ascending=False)
+                
                 col1, col2 = st.columns(2)
                 with col1:
                     st.markdown("#### 🥇 Overall Competition Standings")
