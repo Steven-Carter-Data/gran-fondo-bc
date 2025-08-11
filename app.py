@@ -146,7 +146,7 @@ assets_dir = Path(__file__).parent / "assets"
 logo_b64 = load_image_as_base64(assets_dir / "logo.png")
 sidebar_logo_b64 = load_image_as_base64(assets_dir / "sidebar-logo.png")
 
-# Custom CSS for modern, cycling-themed styling (YOUR ORIGINAL CSS + NEW COMPETITION STYLES)
+# Custom CSS for modern, cycling-themed styling + MOBILE RESPONSIVE
 st.markdown("""
 <style>
     /* Main app styling */
@@ -879,6 +879,507 @@ st.markdown("""
         box-shadow: 0 15px 40px rgba(0, 212, 255, 0.3);
         border-color: rgba(0, 212, 255, 0.8);
     }
+
+    /* ==================== MOBILE RESPONSIVE STYLES ==================== */
+    
+    /* Mobile devices */
+    @media screen and (max-width: 768px) {
+        
+        /* Main layout fixes */
+        .stApp {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        
+        .main .block-container {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+            max-width: 100% !important;
+        }
+        
+        /* Header and logo mobile fixes */
+        .stApp img {
+            max-width: 100% !important;
+            height: auto !important;
+        }
+        
+        h1 {
+            font-size: 1.8rem !important;
+            line-height: 1.2 !important;
+            text-align: center !important;
+            margin-bottom: 0.5rem !important;
+            word-break: break-word !important;
+            hyphens: auto !important;
+        }
+        
+        h2 {
+            font-size: 1.4rem !important;
+            line-height: 1.3 !important;
+            text-align: center !important;
+            margin-bottom: 0.5rem !important;
+            word-break: break-word !important;
+        }
+        
+        h3 {
+            font-size: 1.2rem !important;
+            line-height: 1.3 !important;
+            text-align: center !important;
+            margin-bottom: 0.5rem !important;
+            word-break: break-word !important;
+        }
+        
+        /* Competition status banner mobile */
+        .competition-status {
+            margin: 10px 5px !important;
+            padding: 15px !important;
+            border-radius: 10px !important;
+        }
+        
+        .competition-title {
+            font-size: 1.2rem !important;
+            letter-spacing: 1px !important;
+            line-height: 1.3 !important;
+            word-break: break-word !important;
+            hyphens: auto !important;
+        }
+        
+        .competition-dates {
+            font-size: 0.9rem !important;
+            line-height: 1.3 !important;
+            margin-bottom: 8px !important;
+            word-break: break-word !important;
+        }
+        
+        .competition-week {
+            font-size: 0.8rem !important;
+            line-height: 1.3 !important;
+            word-break: break-word !important;
+        }
+        
+        /* Epic leaderboard mobile fixes */
+        .epic-leaderboard {
+            margin: 10px 5px !important;
+            padding: 15px !important;
+            border-radius: 15px !important;
+        }
+        
+        .epic-title {
+            font-size: 1.5rem !important;
+            letter-spacing: 1px !important;
+            line-height: 1.2 !important;
+            word-break: break-word !important;
+            hyphens: auto !important;
+        }
+        
+        .epic-subtitle {
+            font-size: 0.9rem !important;
+            margin-bottom: 20px !important;
+            line-height: 1.3 !important;
+        }
+        
+        /* Ranking cards mobile */
+        .epic-ranking-card {
+            flex-direction: column !important;
+            text-align: center !important;
+            padding: 15px !important;
+            margin: 10px 0 !important;
+        }
+        
+        .rank-position {
+            font-size: 1.5rem !important;
+            margin-bottom: 10px !important;
+            min-width: auto !important;
+        }
+        
+        .athlete-details {
+            margin-left: 0 !important;
+            width: 100% !important;
+        }
+        
+        .athlete-name-full {
+            font-size: 1.1rem !important;
+            letter-spacing: 0.5px !important;
+            margin-bottom: 10px !important;
+            word-break: break-word !important;
+        }
+        
+        .athlete-stats {
+            flex-direction: column !important;
+            gap: 10px !important;
+            align-items: center !important;
+        }
+        
+        .stat-item {
+            margin: 5px 0 !important;
+        }
+        
+        .stat-value {
+            font-size: 1.2rem !important;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem !important;
+        }
+        
+        /* Competition stats grid mobile */
+        .competition-stats {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+            margin: 20px 0 !important;
+        }
+        
+        .stat-card {
+            padding: 15px !important;
+            border-radius: 10px !important;
+        }
+        
+        .stat-card-value {
+            font-size: 1.8rem !important;
+            margin-bottom: 8px !important;
+        }
+        
+        .stat-card-label {
+            font-size: 0.8rem !important;
+            letter-spacing: 0.5px !important;
+            line-height: 1.3 !important;
+            word-break: break-word !important;
+        }
+        
+        /* Weekly performance section mobile */
+        .weekly-performance-section {
+            margin: 20px 5px !important;
+            padding: 15px !important;
+            border-radius: 15px !important;
+        }
+        
+        .weekly-performance-title {
+            font-size: 1.4rem !important;
+            letter-spacing: 1px !important;
+            margin-bottom: 20px !important;
+            line-height: 1.3 !important;
+            word-break: break-word !important;
+        }
+        
+        /* Streamlit component mobile fixes */
+        .stColumn {
+            min-width: 100% !important;
+            width: 100% !important;
+            padding: 0 5px !important;
+            margin-bottom: 15px !important;
+        }
+        
+        [data-testid="metric-container"] {
+            margin: 10px auto !important;
+            padding: 15px !important;
+            width: 95% !important;
+            max-width: none !important;
+            border-radius: 10px !important;
+        }
+        
+        [data-testid="metric-container"] label {
+            font-size: 0.75rem !important;
+            letter-spacing: 1px !important;
+            line-height: 1.3 !important;
+            word-break: break-word !important;
+        }
+        
+        [data-testid="metric-container"] [data-testid="metric-value"] {
+            font-size: 2rem !important;
+            line-height: 1.1 !important;
+        }
+        
+        /* Fix dataframes for mobile */
+        [data-testid="stDataFrame"] {
+            font-size: 0.8rem !important;
+            padding: 5px !important;
+            border-radius: 8px !important;
+        }
+        
+        [data-testid="stDataFrame"] > div {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+        
+        /* Fix selectboxes for mobile */
+        .stSelectbox > div > div {
+            font-size: 0.9rem !important;
+            padding: 8px !important;
+        }
+        
+        /* Fix tabs for mobile */
+        .stTabs [data-baseweb="tab-list"] {
+            padding: 3px !important;
+            border-radius: 8px !important;
+        }
+        
+        .stTabs [data-baseweb="tab"] {
+            font-size: 0.85rem !important;
+            padding: 8px 12px !important;
+            border-radius: 6px !important;
+        }
+        
+        /* Fix buttons for mobile */
+        .stButton > button {
+            font-size: 0.85rem !important;
+            padding: 8px 16px !important;
+            border-radius: 6px !important;
+            letter-spacing: 0.5px !important;
+            width: 100% !important;
+        }
+        
+        /* Athlete cards mobile */
+        .athlete-card {
+            width: 95% !important;
+            max-width: none !important;
+            margin: 10px auto !important;
+            padding: 15px 10px 20px 10px !important;
+            border-radius: 15px !important;
+        }
+        
+        .athlete-name {
+            font-size: 1.3rem !important;
+            letter-spacing: 1px !important;
+            line-height: 1.3 !important;
+            margin-bottom: 15px !important;
+            word-break: break-word !important;
+        }
+        
+        /* Filter sections mobile */
+        .global-filter {
+            margin: 15px 5px !important;
+            padding: 15px !important;
+            border-radius: 15px !important;
+        }
+        
+        .filter-title {
+            font-size: 1.3rem !important;
+            letter-spacing: 1px !important;
+            line-height: 1.3 !important;
+            margin-bottom: 15px !important;
+            word-break: break-word !important;
+        }
+        
+        .athlete-banner {
+            margin: 15px 5px !important;
+            padding: 15px !important;
+            border-radius: 12px !important;
+        }
+        
+        .athlete-name-banner {
+            font-size: 1.2rem !important;
+            letter-spacing: 1px !important;
+            line-height: 1.3 !important;
+            word-break: break-word !important;
+        }
+        
+        /* Tab content mobile */
+        .tab-content {
+            margin: 15px 5px !important;
+            padding: 15px !important;
+            border-radius: 12px !important;
+        }
+        
+        .tab-title {
+            font-size: 1.4rem !important;
+            letter-spacing: 1px !important;
+            margin-bottom: 20px !important;
+            line-height: 1.3 !important;
+            word-break: break-word !important;
+        }
+        
+        /* Summary cards mobile */
+        .summary-card {
+            margin: 10px 5px !important;
+            padding: 15px !important;
+            border-radius: 12px !important;
+        }
+        
+        .summary-card h4 {
+            font-size: 1.1rem !important;
+            margin-bottom: 15px !important;
+            line-height: 1.3 !important;
+            word-break: break-word !important;
+        }
+        
+        /* Sidebar mobile */
+        section[data-testid="stSidebar"] {
+            width: 280px !important;
+        }
+        
+        section[data-testid="stSidebar"] .stMarkdown {
+            font-size: 0.85rem !important;
+        }
+        
+        section[data-testid="stSidebar"] .stButton > button {
+            font-size: 0.8rem !important;
+            padding: 6px 12px !important;
+            width: 100% !important;
+        }
+        
+        /* General text improvements */
+        p {
+            font-size: 0.9rem !important;
+            line-height: 1.4 !important;
+            word-break: break-word !important;
+        }
+        
+        .stMarkdown {
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+            hyphens: auto !important;
+        }
+        
+        /* Spacing improvements */
+        .element-container {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .row-widget {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        /* Progress bar mobile */
+        .progress-bar {
+            height: 15px !important;
+            margin: 10px 0 !important;
+            border-radius: 8px !important;
+        }
+        
+        .progress-fill {
+            border-radius: 8px !important;
+        }
+    }
+    
+    /* Small mobile devices (phones in portrait) */
+    @media screen and (max-width: 480px) {
+        
+        .epic-title {
+            font-size: 1.2rem !important;
+            letter-spacing: 0.5px !important;
+        }
+        
+        .competition-title {
+            font-size: 1rem !important;
+            letter-spacing: 0.5px !important;
+        }
+        
+        .competition-stats {
+            grid-template-columns: 1fr !important;
+            gap: 8px !important;
+        }
+        
+        .stat-card-value {
+            font-size: 1.5rem !important;
+        }
+        
+        .stat-card-label {
+            font-size: 0.75rem !important;
+        }
+        
+        h1 {
+            font-size: 1.5rem !important;
+        }
+        
+        h2 {
+            font-size: 1.2rem !important;
+        }
+        
+        h3 {
+            font-size: 1.1rem !important;
+        }
+        
+        .athlete-name {
+            font-size: 1.1rem !important;
+            letter-spacing: 0.5px !important;
+        }
+        
+        [data-testid="metric-container"] [data-testid="metric-value"] {
+            font-size: 1.8rem !important;
+        }
+        
+        [data-testid="metric-container"] label {
+            font-size: 0.7rem !important;
+        }
+        
+        .stColumn {
+            width: 100% !important;
+            margin-bottom: 20px !important;
+        }
+    }
+    
+    /* Tablet landscape fixes */
+    @media screen and (min-width: 769px) and (max-width: 1024px) {
+        
+        .epic-title {
+            font-size: 2.2rem !important;
+        }
+        
+        .competition-stats {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 15px !important;
+        }
+        
+        .epic-ranking-card {
+            flex-direction: row !important;
+            text-align: left !important;
+        }
+        
+        .athlete-stats {
+            flex-direction: row !important;
+            gap: 20px !important;
+        }
+        
+        .rank-position {
+            font-size: 1.8rem !important;
+            min-width: 50px !important;
+        }
+    }
+    
+    /* Accessibility improvements */
+    @media (hover: none) and (pointer: coarse) {
+        
+        button, 
+        .stButton > button,
+        .stSelectbox,
+        .stDateInput {
+            min-height: 44px !important;
+            min-width: 44px !important;
+        }
+        
+        .epic-ranking-card:active,
+        .stat-card:active,
+        .summary-card:active {
+            transform: scale(0.98) !important;
+            transition: transform 0.1s ease !important;
+        }
+    }
+    
+    /* Force responsiveness */
+    * {
+        box-sizing: border-box !important;
+    }
+    
+    img {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+    
+    table {
+        width: 100% !important;
+        table-layout: fixed !important;
+    }
+    
+    .main {
+        overflow-x: hidden !important;
+    }
+    
+    .stApp * {
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+    
 </style>
 """, unsafe_allow_html=True)
 
