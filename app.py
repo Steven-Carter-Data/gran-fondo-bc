@@ -1677,6 +1677,56 @@ def calculate_weekly_mileage(activities_df: pd.DataFrame) -> pd.DataFrame:
     
     return weekly_stats
 
+def calculate_athlete_streaks(activities_df: pd.DataFrame) -> dict:
+    """Calculate current activity streaks for all athletes"""
+    if activities_df.empty:
+        return {}
+    
+    # Prepare data
+    df = activities_df.copy()
+    df['date'] = pd.to_datetime(df['start_date']).dt.date
+    df['athlete_name'] = df['athletes'].apply(
+        lambda x: f"{x['firstname']} {x['lastname']}" if x else "Unknown"
+    )
+    
+    today = datetime.now().date()
+    streaks = {}
+    
+    # Calculate streak for each athlete
+    for athlete in df['athlete_name'].unique():
+        athlete_activities = df[df['athlete_name'] == athlete]['date'].sort_values(ascending=False)
+        
+        if athlete_activities.empty:
+            streaks[athlete] = 0
+            continue
+        
+        # Check if they have an activity today or yesterday (to account for different time zones)
+        latest_activity = athlete_activities.iloc[0]
+        days_since_last = (today - latest_activity).days
+        
+        if days_since_last > 1:
+            streaks[athlete] = 0
+            continue
+        
+        # Calculate consecutive days working backwards from latest activity
+        current_streak = 1
+        current_date = latest_activity - timedelta(days=1)
+        
+        for activity_date in athlete_activities.iloc[1:]:
+            if activity_date == current_date:
+                current_streak += 1
+                current_date -= timedelta(days=1)
+            elif (current_date - activity_date).days == 0:
+                # Same day, continue
+                continue
+            else:
+                # Gap found, break
+                break
+        
+        streaks[athlete] = current_streak
+    
+    return streaks
+
 # Main app
 def main():
     # NEW: Competition status banner at the very top
@@ -2340,6 +2390,9 @@ def main():
     if not hr_zones_df.empty:
         points_df = calculate_hr_zone_points(hr_zones_df)
         
+        # Calculate activity streaks for all athletes
+        athlete_streaks = calculate_athlete_streaks(cycling_activities)
+        
         if not points_df.empty and len(points_df) >= 3:
             # Get top 3 for podium
             top_3 = points_df.head(3)
@@ -2348,6 +2401,10 @@ def main():
             total_points = points_df['zone_points'].sum()
             total_activities = points_df['activity_count'].sum()
             leader_points = points_df.iloc[0]['zone_points']
+            
+            # Find the longest current streak
+            max_streak = max(athlete_streaks.values()) if athlete_streaks else 0
+            active_streaks = len([s for s in athlete_streaks.values() if s > 0])
             
             st.markdown(f"""
             <div class="competition-stats">
@@ -2362,6 +2419,10 @@ def main():
                 <div class="stat-card">
                     <div class="stat-card-value">{len(points_df)}</div>
                     <div class="stat-card-label">Athletes Competing</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-value">🔥 {max_streak}</div>
+                    <div class="stat-card-label">Longest Streak (Days)</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-value">{int(leader_points):,}</div>
@@ -2390,6 +2451,11 @@ def main():
                     behind_text = f"-{int(points_behind):,}"
                     behind_color = "#ff6b6b"
                 
+                # Get streak for this athlete
+                athlete_streak = athlete_streaks.get(athlete, 0)
+                streak_emoji = "🔥" if athlete_streak > 0 else "💤"
+                streak_text = f"{athlete_streak} days" if athlete_streak > 0 else "0 days"
+                
                 st.markdown(f"""
                 <div class="epic-ranking-card">
                     <div class="rank-position">{medal_emoji}</div>
@@ -2407,6 +2473,10 @@ def main():
                             <div class="stat-item">
                                 <span class="stat-value">{int(row['activity_count'])}</span>
                                 <span class="stat-label">Activities</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value">{streak_emoji} {streak_text}</span>
+                                <span class="stat-label">Current Streak</span>
                             </div>
                         </div>
                     </div>
