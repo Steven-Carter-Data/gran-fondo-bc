@@ -2391,7 +2391,7 @@ def main():
         points_df = calculate_hr_zone_points(hr_zones_df)
         
         # Calculate activity streaks for all athletes
-        athlete_streaks = calculate_athlete_streaks(cycling_activities)
+        athlete_streaks = calculate_athlete_streaks(activities_df)
         
         if not points_df.empty and len(points_df) >= 3:
             # Get top 3 for podium
