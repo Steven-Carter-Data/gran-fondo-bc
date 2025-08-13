@@ -1695,14 +1695,14 @@ def calculate_athlete_streaks(activities_df: pd.DataFrame) -> dict:
     
     # Calculate streak for each athlete
     for athlete in df['athlete_name'].unique():
-        athlete_activities = df[df['athlete_name'] == athlete]['date'].sort_values(ascending=False)
+        athlete_dates = df[df['athlete_name'] == athlete]['date'].drop_duplicates().sort_values(ascending=False)
         
-        if athlete_activities.empty:
+        if athlete_dates.empty:
             streaks[athlete] = 0
             continue
         
         # Check if they have an activity today or yesterday (to account for different time zones)
-        latest_activity = athlete_activities.iloc[0]
+        latest_activity = athlete_dates.iloc[0]
         days_since_last = (today - latest_activity).days
         
         if days_since_last > 1:
@@ -1711,15 +1711,15 @@ def calculate_athlete_streaks(activities_df: pd.DataFrame) -> dict:
         
         # Calculate consecutive days working backwards from latest activity
         current_streak = 1
-        current_date = latest_activity - timedelta(days=1)
+        expected_date = latest_activity - timedelta(days=1)
         
-        for activity_date in athlete_activities.iloc[1:]:
-            if activity_date == current_date:
+        # Check each previous day for consecutive activities
+        for i in range(1, len(athlete_dates)):
+            activity_date = athlete_dates.iloc[i]
+            
+            if activity_date == expected_date:
                 current_streak += 1
-                current_date -= timedelta(days=1)
-            elif (current_date - activity_date).days == 0:
-                # Same day, continue
-                continue
+                expected_date -= timedelta(days=1)
             else:
                 # Gap found, break
                 break
