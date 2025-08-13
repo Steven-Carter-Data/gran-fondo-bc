@@ -1685,9 +1685,10 @@ def calculate_athlete_streaks(activities_df: pd.DataFrame) -> dict:
     # Prepare data
     df = activities_df.copy()
     df['date'] = pd.to_datetime(df['start_date']).dt.date
-    df['athlete_name'] = df['athletes'].apply(
-        lambda x: f"{x['firstname']} {x['lastname']}" if x else "Unknown"
-    )
+    
+    # Check if athlete_name column exists (it should from fetch_activities_by_date_range)
+    if 'athlete_name' not in df.columns:
+        return {}
     
     today = datetime.now().date()
     streaks = {}
