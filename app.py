@@ -2474,7 +2474,7 @@ def main():
                         streak_display = f"{streak_badge['emoji']} {athlete_streak} days"
                         streak_title = f"{streak_badge['name']} Badge - {athlete_streak} day streak!"
                     else:
-                        streak_display = f"🔥 {athlete_streak} days"
+                        streak_display = f"{athlete_streak} days"
                         streak_title = f"{athlete_streak} day streak"
                 else:
                     streak_display = "💤 0 days"
