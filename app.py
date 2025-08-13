@@ -1728,6 +1728,19 @@ def calculate_athlete_streaks(activities_df: pd.DataFrame) -> dict:
     
     return streaks
 
+def get_streak_badge(streak_days: int) -> dict:
+    """Get badge emoji and description for streak length"""
+    if streak_days >= 30:
+        return {"emoji": "🏆", "name": "Legend", "color": "#FFD700"}
+    elif streak_days >= 14:
+        return {"emoji": "🔥", "name": "Fire", "color": "#FF4500"}
+    elif streak_days >= 7:
+        return {"emoji": "⚡", "name": "Lightning", "color": "#1E90FF"}
+    elif streak_days >= 3:
+        return {"emoji": "⭐", "name": "Star", "color": "#32CD32"}
+    else:
+        return {"emoji": "", "name": "", "color": "#808080"}
+
 # Main app
 def main():
     # NEW: Competition status banner at the very top
@@ -2454,8 +2467,18 @@ def main():
                 
                 # Get streak for this athlete
                 athlete_streak = athlete_streaks.get(athlete, 0)
-                streak_emoji = "🔥" if athlete_streak > 0 else "💤"
-                streak_text = f"{athlete_streak} days" if athlete_streak > 0 else "0 days"
+                streak_badge = get_streak_badge(athlete_streak)
+                
+                if athlete_streak > 0:
+                    if streak_badge["emoji"]:
+                        streak_display = f"{streak_badge['emoji']} {athlete_streak} days"
+                        streak_title = f"{streak_badge['name']} Badge - {athlete_streak} day streak!"
+                    else:
+                        streak_display = f"🔥 {athlete_streak} days"
+                        streak_title = f"{athlete_streak} day streak"
+                else:
+                    streak_display = "💤 0 days"
+                    streak_title = "No current streak"
                 
                 st.markdown(f"""
                 <div class="epic-ranking-card">
@@ -2476,7 +2499,7 @@ def main():
                                 <span class="stat-label">Activities</span>
                             </div>
                             <div class="stat-item">
-                                <span class="stat-value">{streak_emoji} {streak_text}</span>
+                                <span class="stat-value" title="{streak_title}">{streak_display}</span>
                                 <span class="stat-label">Current Streak</span>
                             </div>
                         </div>
@@ -2540,6 +2563,57 @@ def main():
                                 background: rgba(0, 212, 255, 0.1); border-radius: 10px;'>
                         <span style='color: #00d4ff; font-weight: 600; font-size: 1.1rem;'>
                             🎯 Strategy: Higher intensity zones = more points!
+                        </span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Streak badges explanation
+            with st.expander("🔥 Activity Streak Badges", expanded=False):
+                st.markdown("""
+                <div style='background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%); 
+                            padding: 25px; border-radius: 15px; border: 1px solid rgba(255, 165, 0, 0.3);'>
+                    <h4 style='color: #ffa500; margin-bottom: 20px; text-align: center; font-size: 1.3rem;'>
+                        🏅 Consistency Rewards
+                    </h4>
+                    <div style='display: grid; gap: 15px;'>
+                        <div style='display: flex; align-items: center; padding: 10px; border-radius: 8px; 
+                                    background: rgba(50, 205, 50, 0.1); border-left: 4px solid #32cd32;'>
+                            <span style='color: #32cd32; font-size: 1.5rem; margin-right: 15px;'>⭐</span>
+                            <div>
+                                <span style='color: #32cd32; font-weight: 700;'>Star Badge:</span>
+                                <span style='color: white; margin-left: 10px;'>3+ consecutive days</span>
+                            </div>
+                        </div>
+                        <div style='display: flex; align-items: center; padding: 10px; border-radius: 8px; 
+                                    background: rgba(30, 144, 255, 0.1); border-left: 4px solid #1e90ff;'>
+                            <span style='color: #1e90ff; font-size: 1.5rem; margin-right: 15px;'>⚡</span>
+                            <div>
+                                <span style='color: #1e90ff; font-weight: 700;'>Lightning Badge:</span>
+                                <span style='color: white; margin-left: 10px;'>7+ consecutive days</span>
+                            </div>
+                        </div>
+                        <div style='display: flex; align-items: center; padding: 10px; border-radius: 8px; 
+                                    background: rgba(255, 69, 0, 0.1); border-left: 4px solid #ff4500;'>
+                            <span style='color: #ff4500; font-size: 1.5rem; margin-right: 15px;'>🔥</span>
+                            <div>
+                                <span style='color: #ff4500; font-weight: 700;'>Fire Badge:</span>
+                                <span style='color: white; margin-left: 10px;'>14+ consecutive days</span>
+                            </div>
+                        </div>
+                        <div style='display: flex; align-items: center; padding: 10px; border-radius: 8px; 
+                                    background: rgba(255, 215, 0, 0.1); border-left: 4px solid #ffd700;'>
+                            <span style='color: #ffd700; font-size: 1.5rem; margin-right: 15px;'>🏆</span>
+                            <div>
+                                <span style='color: #ffd700; font-weight: 700;'>Legend Badge:</span>
+                                <span style='color: white; margin-left: 10px;'>30+ consecutive days</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style='text-align: center; margin-top: 20px; padding: 15px; 
+                                background: rgba(255, 165, 0, 0.1); border-radius: 10px;'>
+                        <span style='color: #ffa500; font-weight: 600; font-size: 1.1rem;'>
+                            🎯 Keep the momentum! Activity streaks encourage daily consistency
                         </span>
                     </div>
                 </div>

@@ -36,13 +36,14 @@ Single-file Streamlit application (~3000+ lines) containing:
    - `calculate_weekly_athlete_performance()`: Aggregates weekly stats
    - `calculate_athlete_cycling_stats()`: Generates comprehensive statistics
    - `calculate_athlete_streaks()`: Tracks consecutive days with activities
+   - `get_streak_badge()`: Determines badge tier for streak milestones
 
 3. **UI Components**: Heavy use of custom HTML/CSS for styling
    - Epic leaderboard display with streak counters
    - Weekly performance charts
    - Athlete comparison views
    - Team totals dashboard
-   - Activity streak tracking (daily consistency)
+   - Activity streak tracking with milestone badges (⭐ 3+ days, ⚡ 7+ days, 🔥 14+ days, 🏆 30+ days)
 
 ## Development Commands
 
