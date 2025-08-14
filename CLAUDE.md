@@ -37,8 +37,6 @@ Single-file Streamlit application (~3000+ lines) containing:
    - `calculate_athlete_cycling_stats()`: Generates comprehensive statistics
    - `calculate_athlete_streaks()`: Tracks consecutive days with activities
    - `get_streak_badge()`: Determines badge tier for streak milestones
-   - `calculate_personal_records()`: Tracks longest distance, most elevation, fastest speed PRs
-   - `check_new_personal_records()`: Identifies new records set during competition
 
 3. **UI Components**: Heavy use of custom HTML/CSS for styling
    - Epic leaderboard display with streak counters
@@ -46,8 +44,6 @@ Single-file Streamlit application (~3000+ lines) containing:
    - Athlete comparison views
    - Team totals dashboard
    - Activity streak tracking with milestone badges (⭐ 3+ days, ⚡ 7+ days, 🔥 14+ days, 🏆 30+ days)
-   - Personal Records tracking (longest distance, most elevation, fastest speed)
-   - PR alerts for new records and leaderboard comparisons
 
 ## Development Commands
 

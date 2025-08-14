@@ -1741,110 +1741,6 @@ def get_streak_badge(streak_days: int) -> dict:
     else:
         return {"emoji": "", "name": "", "color": "#808080"}
 
-def calculate_personal_records(activities_df: pd.DataFrame) -> dict:
-    """Calculate personal records for all athletes"""
-    if activities_df.empty or 'athlete_name' not in activities_df.columns:
-        return {}
-    
-    # Filter for cycling activities - try multiple common values
-    df_copy = activities_df.copy()
-    if 'sport_type' in df_copy.columns:
-        cycling_df = df_copy[df_copy['sport_type'].str.lower().isin(['ride', 'cycling', 'bike', 'bicycle'])].copy()
-    else:
-        # If no sport_type column, use all activities
-        cycling_df = df_copy.copy()
-    
-    if cycling_df.empty:
-        return {}
-    
-    # Convert distance from meters to miles and ensure numeric
-    cycling_df['distance_miles'] = pd.to_numeric(cycling_df['distance'], errors='coerce') / 1609.344
-    cycling_df['elevation_feet'] = pd.to_numeric(cycling_df['total_elevation_gain'], errors='coerce') * 3.28084
-    
-    # Calculate average speed (distance in miles / time in hours)
-    cycling_df['moving_time_hours'] = pd.to_numeric(cycling_df['moving_time'], errors='coerce') / 3600
-    cycling_df['avg_speed_mph'] = cycling_df['distance_miles'] / cycling_df['moving_time_hours']
-    
-    # Remove invalid data
-    cycling_df = cycling_df.dropna(subset=['distance_miles', 'elevation_feet', 'avg_speed_mph'])
-    cycling_df = cycling_df[cycling_df['moving_time_hours'] > 0]  # Remove zero-time activities
-    
-    prs = {}
-    
-    # Calculate PRs for each athlete
-    for athlete in cycling_df['athlete_name'].unique():
-        athlete_activities = cycling_df[cycling_df['athlete_name'] == athlete]
-        
-        if athlete_activities.empty:
-            continue
-            
-        # Find personal records
-        longest_ride = athlete_activities.loc[athlete_activities['distance_miles'].idxmax()]
-        most_elevation = athlete_activities.loc[athlete_activities['elevation_feet'].idxmax()]
-        fastest_ride = athlete_activities.loc[athlete_activities['avg_speed_mph'].idxmax()]
-        
-        prs[athlete] = {
-            'longest_distance': {
-                'value': longest_ride['distance_miles'],
-                'date': pd.to_datetime(longest_ride['start_date']).date(),
-                'activity_name': longest_ride.get('name', 'Unknown')
-            },
-            'most_elevation': {
-                'value': most_elevation['elevation_feet'],
-                'date': pd.to_datetime(most_elevation['start_date']).date(),
-                'activity_name': most_elevation.get('name', 'Unknown')
-            },
-            'fastest_speed': {
-                'value': fastest_ride['avg_speed_mph'],
-                'date': pd.to_datetime(fastest_ride['start_date']).date(),
-                'activity_name': fastest_ride.get('name', 'Unknown')
-            }
-        }
-    
-    return prs
-
-def check_new_personal_records(activities_df: pd.DataFrame, competition_start_date: datetime.date) -> dict:
-    """Check for new personal records set during the competition"""
-    if activities_df.empty or 'athlete_name' not in activities_df.columns:
-        return {}
-    
-    # Get all-time PRs
-    all_time_prs = calculate_personal_records(activities_df)
-    
-    # Get competition period activities only
-    activities_df['date'] = pd.to_datetime(activities_df['start_date']).dt.date
-    competition_activities = activities_df[activities_df['date'] >= competition_start_date]
-    
-    # Get competition PRs
-    competition_prs = calculate_personal_records(competition_activities)
-    
-    new_records = {}
-    
-    # Compare to find new records set during competition
-    for athlete in competition_prs:
-        if athlete not in all_time_prs:
-            continue
-            
-        athlete_new_records = []
-        
-        # Check each PR type
-        for pr_type in ['longest_distance', 'most_elevation', 'fastest_speed']:
-            competition_pr = competition_prs[athlete][pr_type]
-            all_time_pr = all_time_prs[athlete][pr_type]
-            
-            # If the competition PR date matches the all-time PR date, it's a new record
-            if competition_pr['date'] == all_time_pr['date']:
-                athlete_new_records.append({
-                    'type': pr_type,
-                    'value': competition_pr['value'],
-                    'date': competition_pr['date'],
-                    'activity_name': competition_pr['activity_name']
-                })
-        
-        if athlete_new_records:
-            new_records[athlete] = athlete_new_records
-    
-    return new_records
 
 # Main app
 def main():
@@ -2512,16 +2408,6 @@ def main():
         # Calculate activity streaks for all athletes
         athlete_streaks = calculate_athlete_streaks(activities_df)
         
-        # DEBUG: Show what sport types exist
-        if not activities_df.empty and 'sport_type' in activities_df.columns:
-            unique_sports = activities_df['sport_type'].unique()
-            st.write(f"DEBUG - Sport types found: {list(unique_sports)}")
-        
-        # Calculate personal records for all athletes
-        personal_records = calculate_personal_records(activities_df)
-        
-        # Check for new personal records during competition
-        new_records = check_new_personal_records(activities_df, COMPETITION_START)
         
         if not points_df.empty and len(points_df) >= 3:
             # Get top 3 for podium
@@ -2596,29 +2482,6 @@ def main():
                     streak_display = "💤 0 days"
                     streak_title = "No current streak"
                 
-                # Get PR summary for this athlete
-                athlete_prs = personal_records.get(athlete, {})
-                new_athlete_records = new_records.get(athlete, [])
-                
-                # Create PR display (most impressive stat)
-                pr_display = "No rides"
-                pr_title = "Personal Records"
-                if athlete_prs:
-                    # Show longest distance as primary PR
-                    longest_dist = athlete_prs.get('longest_distance', {}).get('value', 0)
-                    if longest_dist > 0:
-                        pr_display = f"🚴 {longest_dist:.1f}mi"
-                        pr_title = f"Longest ride: {longest_dist:.1f} miles"
-                        
-                        # Add new record indicator if this athlete has new records
-                        if new_athlete_records:
-                            pr_display = f"🆕 {pr_display}"
-                            record_types = [r['type'].replace('_', ' ').title() for r in new_athlete_records]
-                            pr_title = f"NEW RECORDS: {', '.join(record_types)}!"
-                    else:
-                        pr_display = "No data"
-                        pr_title = "No ride data available"
-                
                 st.markdown(f"""
                 <div class="epic-ranking-card">
                     <div class="rank-position">{medal_emoji}</div>
@@ -2640,10 +2503,6 @@ def main():
                             <div class="stat-item">
                                 <span class="stat-value" title="{streak_title}">{streak_display}</span>
                                 <span class="stat-label">Current Streak</span>
-                            </div>
-                            <div class="stat-item">
-                                <span class="stat-value" title="{pr_title}">{pr_display}</span>
-                                <span class="stat-label">Longest Ride</span>
                             </div>
                         </div>
                     </div>
@@ -2762,53 +2621,6 @@ def main():
                 </div>
                 """, unsafe_allow_html=True)
             
-            # Personal Records comparison
-            if personal_records:
-                with st.expander("🏆 Personal Records Leaderboard", expanded=False):
-                    col1, col2, col3 = st.columns(3)
-                    
-                    with col1:
-                        st.markdown("### 🚴 Longest Distance")
-                        distance_leaders = sorted(
-                            [(athlete, prs['longest_distance']['value']) for athlete, prs in personal_records.items()],
-                            key=lambda x: x[1], reverse=True
-                        )
-                        for i, (athlete, distance) in enumerate(distance_leaders[:3], 1):
-                            medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉"
-                            st.markdown(f"**{medal} {athlete}**: {distance:.1f} mi")
-                    
-                    with col2:
-                        st.markdown("### ⛰️ Most Elevation")
-                        elevation_leaders = sorted(
-                            [(athlete, prs['most_elevation']['value']) for athlete, prs in personal_records.items()],
-                            key=lambda x: x[1], reverse=True
-                        )
-                        for i, (athlete, elevation) in enumerate(elevation_leaders[:3], 1):
-                            medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉"
-                            st.markdown(f"**{medal} {athlete}**: {elevation:,.0f} ft")
-                    
-                    with col3:
-                        st.markdown("### ⚡ Fastest Average")
-                        speed_leaders = sorted(
-                            [(athlete, prs['fastest_speed']['value']) for athlete, prs in personal_records.items()],
-                            key=lambda x: x[1], reverse=True
-                        )
-                        for i, (athlete, speed) in enumerate(speed_leaders[:3], 1):
-                            medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉"
-                            st.markdown(f"**{medal} {athlete}**: {speed:.1f} mph")
-                    
-                    # New records alert
-                    if new_records:
-                        st.markdown("---")
-                        st.markdown("### 🆕 New Records This Competition!")
-                        for athlete, records in new_records.items():
-                            for record in records:
-                                record_type_display = {
-                                    'longest_distance': f"🚴 Longest Distance: {record['value']:.1f} mi",
-                                    'most_elevation': f"⛰️ Most Elevation: {record['value']:,.0f} ft", 
-                                    'fastest_speed': f"⚡ Fastest Speed: {record['value']:.1f} mph"
-                                }
-                                st.success(f"**{athlete}** - {record_type_display[record['type']]} on {record['date']}")
         
         elif not points_df.empty:
             st.markdown("""
