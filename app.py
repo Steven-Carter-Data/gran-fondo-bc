@@ -2512,6 +2512,11 @@ def main():
         # Calculate activity streaks for all athletes
         athlete_streaks = calculate_athlete_streaks(activities_df)
         
+        # DEBUG: Show what sport types exist
+        if not activities_df.empty and 'sport_type' in activities_df.columns:
+            unique_sports = activities_df['sport_type'].unique()
+            st.write(f"DEBUG - Sport types found: {list(unique_sports)}")
+        
         # Calculate personal records for all athletes
         personal_records = calculate_personal_records(activities_df)
         
