@@ -1746,8 +1746,13 @@ def calculate_personal_records(activities_df: pd.DataFrame) -> dict:
     if activities_df.empty or 'athlete_name' not in activities_df.columns:
         return {}
     
-    # Filter for cycling activities only
-    cycling_df = activities_df[activities_df['sport_type'].str.lower() == 'ride'].copy()
+    # Filter for cycling activities - try multiple common values
+    df_copy = activities_df.copy()
+    if 'sport_type' in df_copy.columns:
+        cycling_df = df_copy[df_copy['sport_type'].str.lower().isin(['ride', 'cycling', 'bike', 'bicycle'])].copy()
+    else:
+        # If no sport_type column, use all activities
+        cycling_df = df_copy.copy()
     
     if cycling_df.empty:
         return {}
@@ -2591,7 +2596,7 @@ def main():
                 new_athlete_records = new_records.get(athlete, [])
                 
                 # Create PR display (most impressive stat)
-                pr_display = ""
+                pr_display = "No rides"
                 pr_title = "Personal Records"
                 if athlete_prs:
                     # Show longest distance as primary PR
@@ -2605,6 +2610,9 @@ def main():
                             pr_display = f"🆕 {pr_display}"
                             record_types = [r['type'].replace('_', ' ').title() for r in new_athlete_records]
                             pr_title = f"NEW RECORDS: {', '.join(record_types)}!"
+                    else:
+                        pr_display = "No data"
+                        pr_title = "No ride data available"
                 
                 st.markdown(f"""
                 <div class="epic-ranking-card">
