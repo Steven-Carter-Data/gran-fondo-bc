@@ -3198,5 +3198,144 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
+# TEMPORARY ADMIN SECTION FOR FIXING EXISTING ACTIVITIES
+# Add ?admin=true to the URL to show this section
+if st.query_params.get("admin") == "true":
+    st.markdown("---")
+    st.header("🔧 Admin: Fix Activity Classifications")
+    st.warning("⚠️ This is a one-time fix to reclassify existing activities based on elevation data.")
+    
+    def fix_existing_activities_admin(supabase):
+        """
+        Fix existing activities in the database by reclassifying 'Peloton' activities
+        that have elevation data as 'Bike' activities.
+        """
+        st.write("🔧 Starting activity classification fix...")
+        
+        # Fetch all activities that might need fixing
+        st.write("📊 Fetching activities from database...")
+        response = supabase.table('activities').select("*").execute()
+        
+        if not response.data:
+            st.error("❌ No activities found in database")
+            return
+        
+        df = pd.DataFrame(response.data)
+        st.write(f"📋 Found {len(df)} total activities")
+        
+        # Clean sport_type for analysis (same logic as in app.py)
+        def clean_sport_type_admin(value):
+            if not isinstance(value, str):
+                return value
+            
+            # Remove various root= formats
+            if value.startswith("root='") and value.endswith("'"):
+                cleaned = value[6:-1]
+            elif value.startswith('root="') and value.endswith('"'):
+                cleaned = value[6:-1]
+            elif value.startswith('root='):
+                cleaned = value[5:]
+                if cleaned.startswith("'") and cleaned.endswith("'"):
+                    cleaned = cleaned[1:-1]
+                elif cleaned.startswith('"') and cleaned.endswith('"'):
+                    cleaned = cleaned[1:-1]
+            else:
+                cleaned = value
+            
+            # Apply specific replacements
+            if cleaned == 'Ride':
+                return 'Peloton'  # Will be corrected to 'Bike' if has elevation
+            elif cleaned == 'Run':
+                return 'Run'
+            else:
+                return cleaned
+        
+        df['cleaned_sport_type'] = df['sport_type'].apply(clean_sport_type_admin)
+        
+        # Show current distribution
+        st.write("📈 Current sport_type distribution:")
+        st.write(df['cleaned_sport_type'].value_counts())
+        
+        # Find activities that should be reclassified
+        peloton_activities = df[df['cleaned_sport_type'] == 'Peloton'].copy()
+        
+        if peloton_activities.empty:
+            st.success("✅ No Peloton activities found to analyze")
+            return
+        
+        st.write(f"🔍 Found {len(peloton_activities)} activities currently classified as 'Peloton'")
+        
+        # Check elevation data
+        peloton_activities['has_elevation'] = peloton_activities['total_elevation_gain'].fillna(0) > 0
+        
+        with_elevation = peloton_activities[peloton_activities['has_elevation']]
+        without_elevation = peloton_activities[~peloton_activities['has_elevation']]
+        
+        st.write(f"• {len(with_elevation)} have elevation data (should be 'Bike')")
+        st.write(f"• {len(without_elevation)} have no elevation (correctly 'Peloton')")
+        
+        if with_elevation.empty:
+            st.success("✅ No activities need to be reclassified")
+            return
+        
+        # Show some examples
+        st.write(f"📋 Sample activities that will be changed from 'Peloton' to 'Bike':")
+        for _, row in with_elevation.head(5).iterrows():
+            elevation_ft = row['total_elevation_gain'] * 3.28084 if row['total_elevation_gain'] else 0
+            st.write(f"• {row['start_date']} - {row['name']} ({elevation_ft:.0f}ft elevation)")
+        
+        # Add a button to perform the fix
+        if st.button(f"🔄 Update {len(with_elevation)} activities from 'Peloton' to 'Bike'"):
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            updated_count = 0
+            failed_count = 0
+            
+            for i, (_, row) in enumerate(with_elevation.iterrows()):
+                try:
+                    # Update the sport_type to 'Bike'
+                    update_response = supabase.table('activities')\
+                        .update({'sport_type': 'Bike'})\
+                        .eq('id', row['id'])\
+                        .execute()
+                    
+                    if update_response.data:
+                        updated_count += 1
+                    else:
+                        failed_count += 1
+                        st.error(f"❌ Failed to update activity {row['id']}")
+                        
+                except Exception as e:
+                    failed_count += 1
+                    st.error(f"❌ Error updating activity {row['id']}: {e}")
+                
+                # Update progress
+                progress = (i + 1) / len(with_elevation)
+                progress_bar.progress(progress)
+                status_text.text(f"Updating {i + 1}/{len(with_elevation)} activities...")
+            
+            progress_bar.empty()
+            status_text.empty()
+            
+            st.success(f"🎉 Update complete!")
+            st.write(f"✅ Successfully updated: {updated_count}")
+            if failed_count > 0:
+                st.write(f"❌ Failed updates: {failed_count}")
+            
+            # Verify the changes
+            st.write(f"🔍 Verifying updates...")
+            response = supabase.table('activities').select("*").execute()
+            df_updated = pd.DataFrame(response.data)
+            df_updated['cleaned_sport_type'] = df_updated['sport_type'].apply(clean_sport_type_admin)
+            
+            st.write("📈 Updated sport_type distribution:")
+            st.write(df_updated['cleaned_sport_type'].value_counts())
+            
+            st.success("✅ Activity classification fix completed!")
+    
+    # Run the admin function
+    fix_existing_activities_admin(supabase)
+
 if __name__ == "__main__":
     main()
