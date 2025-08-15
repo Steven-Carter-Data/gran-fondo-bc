@@ -101,7 +101,7 @@ def calculate_weekly_athlete_performance(hr_zones_df: pd.DataFrame, activities_d
                 # Get cycling miles for this athlete this week
                 athlete_activities = week_activities[
                     (week_activities['athlete_name'] == athlete) &
-                    (week_activities['sport_type'].isin(['Ride', 'VirtualRide', 'Peloton']))
+                    (week_activities['sport_type'].isin(['Ride', 'VirtualRide', 'Peloton', 'Bike']))
                 ]
                 cycling_miles = athlete_activities['distance'].sum() / 1609.344 if not athlete_activities.empty else 0
                 
@@ -1452,6 +1452,11 @@ def fetch_activities_by_date_range(_supabase: Client, start_date: str, end_date:
         df['name'] = df['name'].apply(clean_field)
         df['sport_type'] = df['sport_type'].apply(clean_field)
         
+        # Distinguish between Bike and Peloton based on elevation
+        # If sport_type is 'Peloton' (converted from 'Ride') and has elevation, it's actually a bike ride
+        mask_peloton_with_elevation = (df['sport_type'] == 'Peloton') & (df['total_elevation_gain'] > 0)
+        df.loc[mask_peloton_with_elevation, 'sport_type'] = 'Bike'
+        
         return df
     return pd.DataFrame()
 
@@ -1574,9 +1579,9 @@ def calculate_athlete_cycling_stats(activities_df: pd.DataFrame, hr_zones_df: pd
     for athlete in athletes:
         athlete_activities = activities_df[activities_df['athlete_name'] == athlete]
         
-        # Filter for cycling activities (Ride, VirtualRide, Peloton)
+        # Filter for cycling activities (Ride, VirtualRide, Peloton, Bike)
         cycling_activities = athlete_activities[
-            athlete_activities['sport_type'].isin(['Ride', 'VirtualRide', 'Peloton'])
+            athlete_activities['sport_type'].isin(['Ride', 'VirtualRide', 'Peloton', 'Bike'])
         ]
         
         # Total cycling miles (all time in the selected date range)
@@ -2866,6 +2871,7 @@ def main():
                     'Ride': '🚴',
                     'VirtualRide': '🚴💻',
                     'Peloton': '🚴',
+                    'Bike': '🚴‍♂️',
                     'Run': '🏃',
                     'Treadmill': '🏃',
                     'Walk': '🚶',
@@ -2980,7 +2986,7 @@ def main():
                         st.metric("👥 Total Athletes", unique_athletes)
                     
                     cycling_activities = filtered_activities[
-                        filtered_activities['sport_type'].isin(['Ride', 'VirtualRide', 'Peloton'])
+                        filtered_activities['sport_type'].isin(['Ride', 'VirtualRide', 'Peloton', 'Bike'])
                     ]
                     st.metric("🚴 Cycling Activities", len(cycling_activities))
                 
