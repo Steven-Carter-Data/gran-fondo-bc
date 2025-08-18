@@ -1457,6 +1457,9 @@ def fetch_activities_by_date_range(_supabase: Client, start_date: str, end_date:
         mask_peloton_with_elevation = (df['sport_type'] == 'Peloton') & (df['total_elevation_gain'] > 0)
         df.loc[mask_peloton_with_elevation, 'sport_type'] = 'Bike'
         
+        # Filter out non-competition activities like Tennis
+        df = df[df['sport_type'] != 'Tennis']
+        
         return df
     return pd.DataFrame()
 
@@ -1518,6 +1521,9 @@ def fetch_heart_rate_zones_by_date(_supabase: Client, start_date: str, end_date:
         
         # Remove rows without athlete_name
         df = df[df['athlete_name'].notna()]
+        
+        # Filter out non-competition activities like Tennis
+        df = df[df['sport_type'] != 'Tennis']
         
         return df
     return pd.DataFrame()
