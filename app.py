@@ -1803,11 +1803,6 @@ def get_streak_badge(streak_days: int) -> dict:
 
 # Main app
 def main():
-    # Cache clearing button for debugging
-    if st.sidebar.button("🔄 Clear Cache & Refresh Data"):
-        st.cache_data.clear()
-        st.rerun()
-    
     # NEW: Competition status banner at the very top
     current_week_num, current_week_status = get_current_competition_week()
     today = datetime.now().date()
