@@ -1525,6 +1525,15 @@ def fetch_heart_rate_zones_by_date(_supabase: Client, start_date: str, end_date:
         # Filter out non-competition activities like Tennis
         df = df[df['sport_type'] != 'Tennis']
         
+        # Remove duplicate heart rate zone records for the same activity
+        # This could happen if there are multiple HR zone entries for one activity
+        if 'activity_id' in df.columns and len(df) > 0:
+            original_count = len(df)
+            df = df.drop_duplicates(subset=['activity_id'], keep='first')
+            if len(df) != original_count:
+                # Note: This debug message will be captured in the function
+                pass
+        
         return df
     return pd.DataFrame()
 
@@ -1539,14 +1548,26 @@ def calculate_hr_zone_points(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return pd.DataFrame()
     
+    # Check for duplicate activity_ids that could cause point inflation
+    if 'activity_id' in df.columns:
+        original_count = len(df)
+        duplicate_activities = df[df.duplicated('activity_id', keep=False)]
+        if not duplicate_activities.empty:
+            # Remove duplicates, keeping the first occurrence
+            df = df.drop_duplicates('activity_id', keep='first')
+            # Add debug info in sidebar for troubleshooting
+            if len(df) != original_count:
+                st.sidebar.warning(f"⚠️ Removed {original_count - len(df)} duplicate HR zone records")
+    
     # Calculate points for each activity
-    # Use zone_X_seconds columns from database (convert to minutes by dividing by 60)
+    # Use zone_X_seconds columns from database (convert to hours by dividing by 3600)
+    # Points are awarded per HOUR, not per minute
     df['zone_points'] = (
-        (df.get('zone_1_seconds', df.get('zone_1_time', 0)).fillna(0) / 60) * 1 +
-        (df.get('zone_2_seconds', df.get('zone_2_time', 0)).fillna(0) / 60) * 2 +
-        (df.get('zone_3_seconds', df.get('zone_3_time', 0)).fillna(0) / 60) * 3 +
-        (df.get('zone_4_seconds', df.get('zone_4_time', 0)).fillna(0) / 60) * 4 +
-        (df.get('zone_5_seconds', df.get('zone_5_time', 0)).fillna(0) / 60) * 5
+        (df.get('zone_1_seconds', df.get('zone_1_time', 0)).fillna(0) / 3600) * 1 +
+        (df.get('zone_2_seconds', df.get('zone_2_time', 0)).fillna(0) / 3600) * 2 +
+        (df.get('zone_3_seconds', df.get('zone_3_time', 0)).fillna(0) / 3600) * 3 +
+        (df.get('zone_4_seconds', df.get('zone_4_time', 0)).fillna(0) / 3600) * 4 +
+        (df.get('zone_5_seconds', df.get('zone_5_time', 0)).fillna(0) / 3600) * 5
     )
     
     # Group by athlete - use correct column names (seconds or time)
@@ -1760,6 +1781,11 @@ def get_streak_badge(streak_days: int) -> dict:
 
 # Main app
 def main():
+    # Cache clearing button for debugging
+    if st.sidebar.button("🔄 Clear Cache & Refresh Data"):
+        st.cache_data.clear()
+        st.rerun()
+    
     # NEW: Competition status banner at the very top
     current_week_num, current_week_status = get_current_competition_week()
     today = datetime.now().date()
