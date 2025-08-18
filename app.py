@@ -1406,25 +1406,11 @@ def fetch_athletes(_supabase: Client) -> pd.DataFrame:
 @st.cache_data(ttl=60)
 def fetch_activities_by_date_range(_supabase: Client, start_date: str, end_date: str) -> pd.DataFrame:
     """Fetch activities within date range with athlete info"""
-    # Ensure we capture activities through end of Sunday (23:59:59)
-    # Parse end_date and format it properly with time
-    try:
-        # Try parsing as datetime first
-        end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-        end_date_with_time = end_dt.strftime('%Y-%m-%d') + " 23:59:59"
-    except:
-        # If it's just a date string, add time directly
-        if ' ' not in end_date and 'T' not in end_date:
-            end_date_with_time = end_date + " 23:59:59"
-        else:
-            # Already has time, extract just the date part
-            date_part = end_date.split('T')[0] if 'T' in end_date else end_date.split()[0]
-            end_date_with_time = date_part + " 23:59:59"
     
     response = _supabase.table('activities')\
         .select("*, athletes(firstname, lastname)")\
         .gte('start_date', start_date)\
-        .lte('start_date', end_date_with_time)\
+        .lte('start_date', end_date)\
         .order('start_date', desc=True)\
         .execute()
     
@@ -1481,25 +1467,11 @@ def fetch_activities_by_date_range(_supabase: Client, start_date: str, end_date:
 @st.cache_data(ttl=60)
 def fetch_heart_rate_zones_by_date(_supabase: Client, start_date: str, end_date: str) -> pd.DataFrame:
     """Fetch heart rate zone data for specified date range"""
-    # Ensure we capture activities through end of Sunday (23:59:59)
-    # Parse end_date and format it properly with time
-    try:
-        # Try parsing as datetime first
-        end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-        end_date_with_time = end_dt.strftime('%Y-%m-%d') + " 23:59:59"
-    except:
-        # If it's just a date string, add time directly
-        if ' ' not in end_date and 'T' not in end_date:
-            end_date_with_time = end_date + " 23:59:59"
-        else:
-            # Already has time, extract just the date part
-            date_part = end_date.split('T')[0] if 'T' in end_date else end_date.split()[0]
-            end_date_with_time = date_part + " 23:59:59"
     
     response = _supabase.table('heart_rate_zones')\
         .select("*, activities(athlete_id, name, start_date, sport_type, athletes(firstname, lastname))")\
         .gte('activities.start_date', start_date)\
-        .lte('activities.start_date', end_date_with_time)\
+        .lte('activities.start_date', end_date)\
         .execute()
     
     if response.data:
