@@ -1540,24 +1540,29 @@ def calculate_hr_zone_points(df: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame()
     
     # Calculate points for each activity
+    # Use zone_X_seconds columns from database (convert to minutes by dividing by 60)
     df['zone_points'] = (
-        (df['zone_1_time'].fillna(0) / 60) * 1 +
-        (df['zone_2_time'].fillna(0) / 60) * 2 +
-        (df['zone_3_time'].fillna(0) / 60) * 3 +
-        (df['zone_4_time'].fillna(0) / 60) * 4 +
-        (df['zone_5_time'].fillna(0) / 60) * 5
+        (df.get('zone_1_seconds', df.get('zone_1_time', 0)).fillna(0) / 60) * 1 +
+        (df.get('zone_2_seconds', df.get('zone_2_time', 0)).fillna(0) / 60) * 2 +
+        (df.get('zone_3_seconds', df.get('zone_3_time', 0)).fillna(0) / 60) * 3 +
+        (df.get('zone_4_seconds', df.get('zone_4_time', 0)).fillna(0) / 60) * 4 +
+        (df.get('zone_5_seconds', df.get('zone_5_time', 0)).fillna(0) / 60) * 5
     )
     
-    # Group by athlete
-    athlete_points = df.groupby('athlete_name').agg({
-        'zone_1_time': 'sum',
-        'zone_2_time': 'sum',
-        'zone_3_time': 'sum',
-        'zone_4_time': 'sum',
-        'zone_5_time': 'sum',
+    # Group by athlete - use correct column names (seconds or time)
+    agg_dict = {
         'zone_points': 'sum',
         'activity_id': 'count'
-    }).round(0)
+    }
+    
+    # Add zone columns that actually exist in the dataframe
+    for i in range(1, 6):
+        if f'zone_{i}_seconds' in df.columns:
+            agg_dict[f'zone_{i}_seconds'] = 'sum'
+        elif f'zone_{i}_time' in df.columns:
+            agg_dict[f'zone_{i}_time'] = 'sum'
+    
+    athlete_points = df.groupby('athlete_name').agg(agg_dict).round(0)
     
     athlete_points = athlete_points.rename(columns={'activity_id': 'activity_count'})
     athlete_points = athlete_points.sort_values('zone_points', ascending=False)
@@ -3065,13 +3070,16 @@ def main():
                     
                     # Heart rate zone summary if available
                     if not filtered_hr_zones.empty:
-                        zone_totals = {
-                            'Recovery': filtered_hr_zones['zone_1_time'].sum() / 3600,
-                            'Endurance': filtered_hr_zones['zone_2_time'].sum() / 3600,
-                            'Tempo': filtered_hr_zones['zone_3_time'].sum() / 3600,
-                            'Threshold': filtered_hr_zones['zone_4_time'].sum() / 3600,
-                            'VO2 Max': filtered_hr_zones['zone_5_time'].sum() / 3600
-                        }
+                        # Use correct column names (seconds or time) and convert to hours
+                        zone_totals = {}
+                        zone_names = ['Recovery', 'Endurance', 'Tempo', 'Threshold', 'VO2 Max']
+                        for i, zone_name in enumerate(zone_names, 1):
+                            if f'zone_{i}_seconds' in filtered_hr_zones.columns:
+                                zone_totals[zone_name] = filtered_hr_zones[f'zone_{i}_seconds'].sum() / 3600
+                            elif f'zone_{i}_time' in filtered_hr_zones.columns:
+                                zone_totals[zone_name] = filtered_hr_zones[f'zone_{i}_time'].sum() / 3600
+                            else:
+                                zone_totals[zone_name] = 0
                         
                         zone_totals = {k: v for k, v in zone_totals.items() if v > 0}
                         
