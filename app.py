@@ -64,6 +64,30 @@ def get_current_competition_week():
     
     return current_week, f"Week {current_week}"
 
+def get_current_competition_week_dates():
+    """Get the current competition week's Monday and Sunday dates"""
+    today = datetime.now().date()
+    
+    if today < COMPETITION_START or today > COMPETITION_END:
+        # If outside competition, return calendar week for compatibility
+        monday = today - timedelta(days=today.weekday())
+        sunday = monday + timedelta(days=6)
+        return monday, sunday
+    
+    # Find which competition week we're in
+    days_since_start = (today - COMPETITION_START).days
+    current_week_num = (days_since_start // 7)
+    
+    # Calculate the Monday and Sunday of current competition week
+    monday = COMPETITION_START + timedelta(days=current_week_num * 7)
+    sunday = monday + timedelta(days=6)
+    
+    # Don't go past competition end
+    if sunday > COMPETITION_END:
+        sunday = COMPETITION_END
+        
+    return monday, sunday
+
 def calculate_weekly_athlete_performance(hr_zones_df: pd.DataFrame, activities_df: pd.DataFrame) -> pd.DataFrame:
     """Calculate weekly performance for each athlete across all competition weeks"""
     if hr_zones_df.empty:
@@ -1599,10 +1623,8 @@ def calculate_athlete_cycling_stats(activities_df: pd.DataFrame, hr_zones_df: pd
     if activities_df.empty:
         return stats
     
-    # Get current week's Monday and Sunday
-    today = datetime.now().date()
-    monday = today - timedelta(days=today.weekday())
-    sunday = monday + timedelta(days=6)
+    # Get current competition week's Monday and Sunday
+    monday, sunday = get_current_competition_week_dates()
     
     # Convert dates for filtering
     activities_df['date'] = pd.to_datetime(activities_df['start_date']).dt.date
@@ -1691,10 +1713,8 @@ def calculate_weekly_mileage(activities_df: pd.DataFrame) -> pd.DataFrame:
     if activities_df.empty:
         return pd.DataFrame()
     
-    # Get current week's Monday
-    today = datetime.now().date()
-    monday = today - timedelta(days=today.weekday())
-    sunday = monday + timedelta(days=6)
+    # Get current competition week's Monday and Sunday
+    monday, sunday = get_current_competition_week_dates()
     
     # Filter for current week
     df = activities_df.copy()
@@ -1901,8 +1921,7 @@ def main():
                 st.rerun()
         with col2:
             if st.button("📅 Current Week", use_container_width=True):
-                monday = today - timedelta(days=today.weekday())
-                sunday = monday + timedelta(days=6)
+                monday, sunday = get_current_competition_week_dates()
                 st.session_state['start_date'] = monday
                 st.session_state['end_date'] = min(sunday, today)
                 st.rerun()
@@ -2702,10 +2721,8 @@ def main():
         athlete_stats = calculate_athlete_cycling_stats(activities_df, hr_zones_df)
         
         if athlete_stats:
-            # Get current week display info
-            today = datetime.now().date()
-            monday = today - timedelta(days=today.weekday())
-            sunday = monday + timedelta(days=6)
+            # Get current competition week display info
+            monday, sunday = get_current_competition_week_dates()
             week_display = f"{monday.strftime('%b %d')} - {sunday.strftime('%b %d')}"
             
             # Create columns for each athlete (up to 3 athletes per row)
