@@ -1406,10 +1406,14 @@ def fetch_athletes(_supabase: Client) -> pd.DataFrame:
 @st.cache_data(ttl=60)
 def fetch_activities_by_date_range(_supabase: Client, start_date: str, end_date: str) -> pd.DataFrame:
     """Fetch activities within date range with athlete info"""
+    # Ensure we capture activities through end of Sunday (23:59:59)
+    # Add time component to end_date to capture full Sunday
+    end_date_with_time = end_date + " 23:59:59"
+    
     response = _supabase.table('activities')\
         .select("*, athletes(firstname, lastname)")\
         .gte('start_date', start_date)\
-        .lte('start_date', end_date)\
+        .lte('start_date', end_date_with_time)\
         .order('start_date', desc=True)\
         .execute()
     
@@ -1466,10 +1470,14 @@ def fetch_activities_by_date_range(_supabase: Client, start_date: str, end_date:
 @st.cache_data(ttl=60)
 def fetch_heart_rate_zones_by_date(_supabase: Client, start_date: str, end_date: str) -> pd.DataFrame:
     """Fetch heart rate zone data for specified date range"""
+    # Ensure we capture activities through end of Sunday (23:59:59)
+    # Add time component to end_date to capture full Sunday
+    end_date_with_time = end_date + " 23:59:59"
+    
     response = _supabase.table('heart_rate_zones')\
         .select("*, activities(athlete_id, name, start_date, sport_type, athletes(firstname, lastname))")\
         .gte('activities.start_date', start_date)\
-        .lte('activities.start_date', end_date)\
+        .lte('activities.start_date', end_date_with_time)\
         .execute()
     
     if response.data:
@@ -1795,9 +1803,18 @@ def main():
         supabase_key = st.secrets["SUPABASE_KEY"]
         supabase: Client = create_client(supabase_url, supabase_key)
         
+        # Get proper Week 1 dates using the competition week function
+        competition_weeks = get_competition_week_dates()
+        week1 = competition_weeks[0]  # First week
+        
+        st.write(f"**Week 1 Range:** {week1['start']} to {week1['end']}")
+        
         # Fetch Week 1 HR zones data
-        week1_start = "2025-08-11"
-        week1_end = "2025-08-17"
+        week1_start = week1['start'].strftime('%Y-%m-%d')
+        week1_end = week1['end'].strftime('%Y-%m-%d')
+        
+        st.write(f"**Query Range:** {week1_start} to {week1_end}")
+        
         hr_zones_df = fetch_heart_rate_zones_by_date(supabase, week1_start, week1_end)
         
         if not hr_zones_df.empty:
