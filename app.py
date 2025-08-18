@@ -1786,6 +1786,70 @@ def main():
         st.cache_data.clear()
         st.rerun()
     
+    # Debug button to show Jeremiah's detailed data
+    if st.sidebar.button("🔍 Debug Jeremiah's Data"):
+        st.subheader("🔍 Jeremiah Debug Data")
+        
+        # Initialize Supabase
+        supabase_url = st.secrets["SUPABASE_URL"]
+        supabase_key = st.secrets["SUPABASE_KEY"]
+        supabase: Client = create_client(supabase_url, supabase_key)
+        
+        # Fetch Week 1 HR zones data
+        week1_start = "2025-08-11"
+        week1_end = "2025-08-17"
+        hr_zones_df = fetch_heart_rate_zones_by_date(supabase, week1_start, week1_end)
+        
+        if not hr_zones_df.empty:
+            # Filter for Jeremiah
+            jeremiah_data = hr_zones_df[hr_zones_df['athlete_name'].str.contains('Jeremiah', na=False)]
+            
+            st.write("**Jeremiah's Week 1 HR Zone Data:**")
+            st.write(f"Total records: {len(jeremiah_data)}")
+            
+            if not jeremiah_data.empty:
+                # Show columns available
+                st.write("**Available columns:**", list(jeremiah_data.columns))
+                
+                # Show the data
+                st.dataframe(jeremiah_data)
+                
+                # Manual calculation
+                st.write("**Manual Point Calculation:**")
+                total_calculated_points = 0
+                
+                for idx, row in jeremiah_data.iterrows():
+                    zone_points = 0
+                    calculation_details = []
+                    
+                    for zone in range(1, 6):
+                        seconds_col = f'zone_{zone}_seconds'
+                        time_col = f'zone_{zone}_time'
+                        
+                        seconds_value = 0
+                        if seconds_col in row and pd.notna(row[seconds_col]):
+                            seconds_value = row[seconds_col]
+                        elif time_col in row and pd.notna(row[time_col]):
+                            seconds_value = row[time_col]
+                        
+                        if seconds_value > 0:
+                            minutes = seconds_value / 60
+                            points = minutes * zone
+                            zone_points += points
+                            calculation_details.append(f"Zone {zone}: {seconds_value}sec = {minutes:.1f}min × {zone} = {points:.1f}pts")
+                    
+                    st.write(f"**Activity {idx}:** {row.get('activity_name', 'Unknown')} ({row.get('start_date', 'Unknown date')})")
+                    for detail in calculation_details:
+                        st.write(f"  - {detail}")
+                    st.write(f"  - **Activity Total: {zone_points:.1f} points**")
+                    total_calculated_points += zone_points
+                
+                st.write(f"**Grand Total Calculated: {total_calculated_points:.1f} points**")
+            else:
+                st.write("No data found for Jeremiah")
+        else:
+            st.write("No HR zone data found for Week 1")
+    
     # NEW: Competition status banner at the very top
     current_week_num, current_week_status = get_current_competition_week()
     today = datetime.now().date()
