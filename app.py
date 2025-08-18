@@ -2038,13 +2038,19 @@ def main():
                 total_miles = weekly_performance_df.groupby('Athlete')['Cycling_Miles'].sum()
                 total_activities = weekly_performance_df.groupby('Athlete')['Activities'].sum()
                 
-                # Create summary dataframe
+                # Create summary dataframe with weekly columns
                 summary_df = pd.DataFrame({
                     'Total Points': total_points,
                     'Total Cycling Miles': total_miles.round(1),
                     'Total Activities': total_activities,
                     'Avg Points/Week': (total_points / len(available_weeks)).round(1)
                 })
+                
+                # Add weekly point columns
+                for week_num in available_weeks:
+                    week_data = weekly_performance_df[weekly_performance_df['Week_Number'] == week_num]
+                    week_points = week_data.set_index('Athlete')['Points']
+                    summary_df[f'Week {week_num}'] = summary_df.index.map(week_points).fillna(0).astype(int)
                 
                 # Sort by Total Points (highest to lowest)
                 summary_df = summary_df.sort_values('Total Points', ascending=False)
