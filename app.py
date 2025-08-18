@@ -1560,14 +1560,14 @@ def calculate_hr_zone_points(df: pd.DataFrame) -> pd.DataFrame:
                 st.sidebar.warning(f"⚠️ Removed {original_count - len(df)} duplicate HR zone records")
     
     # Calculate points for each activity
-    # Use zone_X_seconds columns from database (convert to hours by dividing by 3600)
-    # Points are awarded per HOUR, not per minute
+    # Use zone_X_seconds columns from database (convert to minutes by dividing by 60)
+    # Points calculation: Zone minutes × zone factor (1-5)
     df['zone_points'] = (
-        (df.get('zone_1_seconds', df.get('zone_1_time', 0)).fillna(0) / 3600) * 1 +
-        (df.get('zone_2_seconds', df.get('zone_2_time', 0)).fillna(0) / 3600) * 2 +
-        (df.get('zone_3_seconds', df.get('zone_3_time', 0)).fillna(0) / 3600) * 3 +
-        (df.get('zone_4_seconds', df.get('zone_4_time', 0)).fillna(0) / 3600) * 4 +
-        (df.get('zone_5_seconds', df.get('zone_5_time', 0)).fillna(0) / 3600) * 5
+        (df.get('zone_1_seconds', df.get('zone_1_time', 0)).fillna(0) / 60) * 1 +
+        (df.get('zone_2_seconds', df.get('zone_2_time', 0)).fillna(0) / 60) * 2 +
+        (df.get('zone_3_seconds', df.get('zone_3_time', 0)).fillna(0) / 60) * 3 +
+        (df.get('zone_4_seconds', df.get('zone_4_time', 0)).fillna(0) / 60) * 4 +
+        (df.get('zone_5_seconds', df.get('zone_5_time', 0)).fillna(0) / 60) * 5
     )
     
     # Group by athlete - use correct column names (seconds or time)
