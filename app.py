@@ -2962,52 +2962,94 @@ def main():
                     }
                 )
                 
-                # Activity timeline chart
-                if 'start_date' in filtered_activities.columns:
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    
-                    timeline_df = filtered_activities.copy()
-                    timeline_df['date'] = pd.to_datetime(timeline_df['start_date']).dt.date
+                # Weekly cycling miles comparison chart
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # Get current and previous week data
+                current_week_num, _ = get_current_competition_week()
+                
+                if current_week_num >= 1 and not weekly_performance_df.empty:
+                    # Create weekly comparison data
+                    weekly_miles_data = []
                     
                     if selected_athlete != "All Team Members":
-                        # For individual athlete, show activity types over time
-                        daily_activities = timeline_df.groupby(['date', 'sport_type']).size().reset_index(name='count')
+                        # Show current and previous week for selected athlete
+                        athlete_data = weekly_performance_df[weekly_performance_df['Athlete'] == selected_athlete]
                         
-                        fig = px.bar(
-                            daily_activities, 
-                            x='date', 
-                            y='count', 
-                            color='sport_type',
-                            title=f"{selected_athlete}'s Daily Activities by Type",
-                            labels={'count': 'Number of Activities', 'date': 'Date', 'sport_type': 'Activity Type'},
-                            color_discrete_sequence=['#00d4ff', '#4ade80', '#fbbf24', '#fb923c', '#f87171']
-                        )
+                        # Get current week miles
+                        current_week_data = athlete_data[athlete_data['Week_Number'] == current_week_num]
+                        current_miles = current_week_data['Cycling_Miles'].iloc[0] if not current_week_data.empty else 0
+                        
+                        # Get previous week miles
+                        prev_week_data = athlete_data[athlete_data['Week_Number'] == (current_week_num - 1)]
+                        prev_miles = prev_week_data['Cycling_Miles'].iloc[0] if not prev_week_data.empty else 0
+                        
+                        weekly_miles_data = [
+                            {'Week': f'Week {current_week_num - 1}', 'Miles': prev_miles, 'Athlete': selected_athlete},
+                            {'Week': f'Week {current_week_num}', 'Miles': current_miles, 'Athlete': selected_athlete}
+                        ]
+                        
+                        # Calculate trend
+                        if prev_miles > 0:
+                            trend = ((current_miles - prev_miles) / prev_miles) * 100
+                            trend_text = f"{'📈' if trend > 0 else '📉' if trend < 0 else '➡️'} {trend:+.1f}% vs last week"
+                        else:
+                            trend_text = "🆕 First week with data"
+                            
+                        chart_title = f"{selected_athlete}'s Weekly Cycling Miles ({trend_text})"
+                        
                     else:
-                        # For all athletes, show by athlete
-                        daily_counts = timeline_df.groupby(['date', 'athlete_name']).size().reset_index(name='count')
+                        # Show all athletes for current week vs previous week
+                        athletes = weekly_performance_df['Athlete'].unique()
+                        
+                        for athlete in athletes:
+                            athlete_data = weekly_performance_df[weekly_performance_df['Athlete'] == athlete]
+                            
+                            # Current week
+                            current_week_data = athlete_data[athlete_data['Week_Number'] == current_week_num]
+                            current_miles = current_week_data['Cycling_Miles'].iloc[0] if not current_week_data.empty else 0
+                            
+                            # Previous week
+                            prev_week_data = athlete_data[athlete_data['Week_Number'] == (current_week_num - 1)]
+                            prev_miles = prev_week_data['Cycling_Miles'].iloc[0] if not prev_week_data.empty else 0
+                            
+                            weekly_miles_data.extend([
+                                {'Week': f'Week {current_week_num - 1}', 'Miles': prev_miles, 'Athlete': athlete},
+                                {'Week': f'Week {current_week_num}', 'Miles': current_miles, 'Athlete': athlete}
+                            ])
+                        
+                        chart_title = "Team Weekly Cycling Miles Comparison"
+                    
+                    if weekly_miles_data:
+                        weekly_df = pd.DataFrame(weekly_miles_data)
                         
                         fig = px.bar(
-                            daily_counts, 
-                            x='date', 
-                            y='count', 
-                            color='athlete_name',
-                            title="Team Daily Activity Distribution",
-                            labels={'count': 'Number of Activities', 'date': 'Date', 'athlete_name': 'Athlete'},
-                            color_discrete_sequence=['#00d4ff', '#4ade80', '#fbbf24', '#fb923c', '#f87171']
+                            weekly_df,
+                            x='Athlete' if selected_athlete == "All Team Members" else 'Week',
+                            y='Miles',
+                            color='Week' if selected_athlete == "All Team Members" else 'Athlete',
+                            title=chart_title,
+                            labels={'Miles': 'Cycling Miles'},
+                            color_discrete_sequence=['#4ade80', '#00d4ff', '#fbbf24', '#fb923c', '#f87171'],
+                            barmode='group' if selected_athlete == "All Team Members" else 'group'
                         )
-                    
-                    fig.update_layout(
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        font=dict(color='white'),
-                        xaxis=dict(gridcolor='rgba(128,128,128,0.2)', title_font=dict(color='white')),
-                        yaxis=dict(gridcolor='rgba(128,128,128,0.2)', title_font=dict(color='white')),
-                        legend=dict(font=dict(color='white')),
-                        height=400,
-                        margin=dict(l=40, r=40, t=60, b=40)
-                    )
-                    
-                    st.plotly_chart(fig, use_container_width=True)
+                        
+                        fig.update_layout(
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            font=dict(color='white'),
+                            xaxis=dict(gridcolor='rgba(128,128,128,0.2)', title_font=dict(color='white')),
+                            yaxis=dict(gridcolor='rgba(128,128,128,0.2)', title_font=dict(color='white')),
+                            legend=dict(font=dict(color='white')),
+                            height=400,
+                            margin=dict(l=40, r=40, t=60, b=40)
+                        )
+                        
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.info("📊 Weekly comparison chart will appear when Week 2 data is available.")
+                else:
+                    st.info("📊 Weekly cycling miles comparison will appear as the competition progresses.")
             
             else:
                 st.markdown("""
