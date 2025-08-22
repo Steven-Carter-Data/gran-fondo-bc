@@ -88,6 +88,107 @@ def get_current_competition_week_dates():
         
     return monday, sunday
 
+def calculate_athlete_trends(weekly_performance_df: pd.DataFrame) -> dict:
+    """Calculate trend indicators for each athlete based on competition weeks only"""
+    trends = {}
+    
+    if weekly_performance_df.empty:
+        return trends
+    
+    # Filter to only competition weeks (1-8)
+    competition_data = weekly_performance_df[
+        (weekly_performance_df['Week_Number'] >= 1) & 
+        (weekly_performance_df['Week_Number'] <= COMPETITION_WEEKS)
+    ]
+    
+    if competition_data.empty:
+        return trends
+    
+    athletes = competition_data['Athlete'].unique()
+    current_week_num, _ = get_current_competition_week()
+    
+    for athlete in athletes:
+        athlete_data = competition_data[competition_data['Athlete'] == athlete].sort_values('Week_Number')
+        
+        if len(athlete_data) < 2:
+            # Need at least 2 competition weeks for trend analysis
+            trends[athlete] = {
+                'points_trend': 'insufficient_data',
+                'miles_trend': 'insufficient_data', 
+                'activity_trend': 'insufficient_data',
+                'overall_momentum': '➡️',
+                'trend_description': f'Week {current_week_num} - Building baseline'
+            }
+            continue
+        
+        # Use all available competition weeks for trend analysis (gets better over time)
+        recent_weeks = athlete_data  # Use all competition data available
+        
+        # Points trend (linear regression slope)
+        points_values = recent_weeks['Points'].values
+        weeks_x = range(len(points_values))
+        if len(points_values) > 1:
+            points_slope = pd.Series(points_values).rolling(window=len(points_values), min_periods=2).apply(
+                lambda x: (x.iloc[-1] - x.iloc[0]) / (len(x) - 1) if len(x) > 1 else 0
+            ).iloc[-1]
+        else:
+            points_slope = 0
+            
+        # Miles trend
+        miles_values = recent_weeks['Cycling_Miles'].values
+        if len(miles_values) > 1:
+            miles_slope = pd.Series(miles_values).rolling(window=len(miles_values), min_periods=2).apply(
+                lambda x: (x.iloc[-1] - x.iloc[0]) / (len(x) - 1) if len(x) > 1 else 0
+            ).iloc[-1]
+        else:
+            miles_slope = 0
+        
+        # Activity frequency trend
+        activity_values = recent_weeks['Activities'].values
+        if len(activity_values) > 1:
+            activity_slope = pd.Series(activity_values).rolling(window=len(activity_values), min_periods=2).apply(
+                lambda x: (x.iloc[-1] - x.iloc[0]) / (len(x) - 1) if len(x) > 1 else 0
+            ).iloc[-1]
+        else:
+            activity_slope = 0
+        
+        # Determine trend directions
+        points_trend = 'improving' if points_slope > 10 else 'declining' if points_slope < -10 else 'stable'
+        miles_trend = 'improving' if miles_slope > 2 else 'declining' if miles_slope < -2 else 'stable'
+        activity_trend = 'improving' if activity_slope > 0.5 else 'declining' if activity_slope < -0.5 else 'stable'
+        
+        # Calculate overall momentum score
+        positive_trends = sum([points_trend == 'improving', miles_trend == 'improving', activity_trend == 'improving'])
+        negative_trends = sum([points_trend == 'declining', miles_trend == 'declining', activity_trend == 'declining'])
+        
+        # Get weeks analyzed for description
+        weeks_analyzed = len(recent_weeks)
+        week_numbers = sorted(recent_weeks['Week_Number'].tolist())
+        week_range = f"Weeks {week_numbers[0]}-{week_numbers[-1]}" if len(week_numbers) > 1 else f"Week {week_numbers[0]}"
+        
+        if positive_trends > negative_trends:
+            momentum = '📈'
+            description = f'Trending upward ({week_range})'
+        elif negative_trends > positive_trends:
+            momentum = '📉' 
+            description = f'Needs attention ({week_range})'
+        else:
+            momentum = '➡️'
+            description = f'Maintaining pace ({week_range})'
+        
+        trends[athlete] = {
+            'points_trend': points_trend,
+            'miles_trend': miles_trend,
+            'activity_trend': activity_trend,
+            'overall_momentum': momentum,
+            'trend_description': description,
+            'points_slope': points_slope,
+            'miles_slope': miles_slope,
+            'activity_slope': activity_slope
+        }
+    
+    return trends
+
 def calculate_weekly_athlete_performance(hr_zones_df: pd.DataFrame, activities_df: pd.DataFrame) -> pd.DataFrame:
     """Calculate weekly performance for each athlete across all competition weeks"""
     if hr_zones_df.empty:
@@ -2721,6 +2822,9 @@ def main():
         # Calculate athlete-specific stats
         athlete_stats = calculate_athlete_cycling_stats(activities_df, hr_zones_df)
         
+        # Calculate trend analysis
+        athlete_trends = calculate_athlete_trends(weekly_performance_df)
+        
         if athlete_stats:
             # Get current competition week display info
             monday, sunday = get_current_competition_week_dates()
@@ -2738,12 +2842,20 @@ def main():
                     if athlete_idx < num_athletes:
                         athlete = athletes_list[athlete_idx]
                         stats = athlete_stats[athlete]
+                        trends = athlete_trends.get(athlete, {})
                         
                         with cols[col_idx]:
-                            # Create centered athlete card with name
+                            # Get trend info
+                            momentum_emoji = trends.get('overall_momentum', '➡️')
+                            trend_desc = trends.get('trend_description', 'Calculating trends...')
+                            
+                            # Create centered athlete card with name and trend
                             st.markdown(f"""
                             <div class="athlete-card">
-                                <div class="athlete-name">{athlete}</div>
+                                <div class="athlete-name">{athlete} {momentum_emoji}</div>
+                                <div style="font-size: 0.8rem; color: rgba(255, 255, 255, 0.7); margin-top: 4px;">
+                                    {trend_desc}
+                                </div>
                             </div>
                             """, unsafe_allow_html=True)
                             
@@ -2771,6 +2883,22 @@ def main():
                                     delta="Selected Period",
                                     delta_color="off"
                                 )
+                                
+                                # Add trend details if available
+                                if trends and 'points_slope' in trends:
+                                    trend_details = []
+                                    if trends['points_slope'] > 10:
+                                        trend_details.append("📈 Points trending up")
+                                    elif trends['points_slope'] < -10:
+                                        trend_details.append("📉 Points trending down") 
+                                        
+                                    if trends['miles_slope'] > 2:
+                                        trend_details.append("🚴 Miles increasing")
+                                    elif trends['miles_slope'] < -2:
+                                        trend_details.append("🚴 Miles decreasing")
+                                        
+                                    if trend_details:
+                                        st.caption(" • ".join(trend_details))
             
             # Add a summary row with totals
             total_weekly_points = sum(s['weekly_zone_points'] for s in athlete_stats.values())
