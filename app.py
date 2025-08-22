@@ -166,15 +166,42 @@ def calculate_athlete_trends(weekly_performance_df: pd.DataFrame) -> dict:
         week_numbers = sorted(recent_weeks['Week_Number'].tolist())
         week_range = f"Weeks {week_numbers[0]}-{week_numbers[-1]}" if len(week_numbers) > 1 else f"Week {week_numbers[0]}"
         
+        # Create specific description based on what's trending
+        trend_details = []
+        if points_trend == 'improving':
+            trend_details.append('points up')
+        elif points_trend == 'declining':
+            trend_details.append('points down')
+            
+        if miles_trend == 'improving':
+            trend_details.append('miles up')
+        elif miles_trend == 'declining':
+            trend_details.append('miles down')
+            
+        if activity_trend == 'improving':
+            trend_details.append('more active')
+        elif activity_trend == 'declining':
+            trend_details.append('less active')
+        
+        # Determine momentum and create specific description
         if positive_trends > negative_trends:
             momentum = '📈'
-            description = f'Trending upward ({week_range})'
+            if trend_details:
+                description = f"{', '.join(trend_details).title()} ({week_range})"
+            else:
+                description = f'Improving overall ({week_range})'
         elif negative_trends > positive_trends:
-            momentum = '📉' 
-            description = f'Needs attention ({week_range})'
+            momentum = '📉'
+            if trend_details:
+                description = f"{', '.join(trend_details).title()} ({week_range})"
+            else:
+                description = f'Declining overall ({week_range})'
         else:
             momentum = '➡️'
-            description = f'Maintaining pace ({week_range})'
+            if trend_details:
+                description = f"{', '.join(trend_details).title()} ({week_range})"
+            else:
+                description = f'Steady performance ({week_range})'
         
         trends[athlete] = {
             'points_trend': points_trend,
