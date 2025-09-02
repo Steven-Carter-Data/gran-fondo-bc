@@ -88,6 +88,73 @@ def get_current_competition_week_dates():
         
     return monday, sunday
 
+def convert_metric_to_imperial(value, unit_type):
+    """Convert metric values to Imperial units"""
+    if pd.isna(value) or value is None:
+        return None, ""
+        
+    if unit_type == 'speed_kmh':
+        # km/h to mph
+        return value * 0.621371, "mph"
+    elif unit_type == 'speed_ms':
+        # m/s to mph  
+        return value * 2.23694, "mph"
+    else:
+        return value, ""
+
+def calculate_cycling_performance_metrics(activities_df: pd.DataFrame) -> dict:
+    """Calculate detailed cycling performance metrics for each athlete"""
+    metrics = {}
+    
+    if activities_df.empty:
+        return metrics
+    
+    # Filter to cycling activities only
+    cycling_activities = activities_df[
+        activities_df['sport_type'].isin(['Ride', 'VirtualRide', 'Peloton', 'Bike'])
+    ].copy()
+    
+    if cycling_activities.empty:
+        return metrics
+    
+    athletes = cycling_activities['athlete_name'].unique()
+    
+    for athlete in athletes:
+        athlete_activities = cycling_activities[cycling_activities['athlete_name'] == athlete]
+        
+        # Basic stats
+        total_rides = len(athlete_activities)
+        
+        # Speed metrics (convert to mph)
+        avg_speeds = athlete_activities['average_speed'].dropna()
+        max_speeds = athlete_activities['max_speed'].dropna()
+        
+        avg_speed_mph = (avg_speeds.mean() * 2.23694) if not avg_speeds.empty else 0  # m/s to mph
+        max_speed_mph = (max_speeds.max() * 2.23694) if not max_speeds.empty else 0   # m/s to mph
+        
+        # Power metrics
+        avg_watts = athlete_activities['average_watts'].dropna()
+        kilojoules = athlete_activities['kilojoules'].dropna()
+        
+        avg_power = avg_watts.mean() if not avg_watts.empty else 0
+        total_energy = kilojoules.sum() if not kilojoules.empty else 0
+        
+        # Distance metrics (already in meters, convert to miles)
+        total_distance_miles = (athlete_activities['distance'].sum() / 1609.344) if 'distance' in athlete_activities.columns else 0
+        avg_ride_distance = total_distance_miles / total_rides if total_rides > 0 else 0
+        
+        metrics[athlete] = {
+            'total_rides': total_rides,
+            'avg_speed_mph': round(avg_speed_mph, 1),
+            'max_speed_mph': round(max_speed_mph, 1),
+            'avg_power_watts': round(avg_power, 0),
+            'total_kilojoules': round(total_energy, 0),
+            'total_distance_miles': round(total_distance_miles, 1),
+            'avg_ride_distance': round(avg_ride_distance, 1)
+        }
+    
+    return metrics
+
 def calculate_athlete_trends(weekly_performance_df: pd.DataFrame) -> dict:
     """Calculate trend indicators for each athlete based on competition weeks only"""
     trends = {}
@@ -2926,6 +2993,133 @@ def main():
                                         
                                     if trend_details:
                                         st.caption(" • ".join(trend_details))
+            
+            # Cycling Performance Metrics Section
+            st.markdown("<br><br>", unsafe_allow_html=True)
+            st.markdown("""
+            <div style='text-align: center; margin: 40px 0 30px 0;'>
+                <h2 style='background: linear-gradient(90deg, #00d4ff, #4ade80); 
+                           -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                           font-size: 2.2rem; font-weight: 800; margin: 0;'>
+                    🚴‍♂️ Cycling Performance Metrics
+                </h2>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Calculate cycling performance metrics
+            cycling_metrics = calculate_cycling_performance_metrics(activities_df)
+            
+            if cycling_metrics:
+                # Create performance metrics table
+                metrics_data = []
+                for athlete, metrics in cycling_metrics.items():
+                    metrics_data.append({
+                        'Athlete': athlete,
+                        'Total Rides': metrics['total_rides'],
+                        'Avg Speed': f"{metrics['avg_speed_mph']} mph",
+                        'Max Speed': f"{metrics['max_speed_mph']} mph", 
+                        'Avg Power': f"{metrics['avg_power_watts']} W" if metrics['avg_power_watts'] > 0 else "N/A",
+                        'Total Energy': f"{metrics['total_kilojoules']:,} kJ" if metrics['total_kilojoules'] > 0 else "N/A",
+                        'Avg Ride Distance': f"{metrics['avg_ride_distance']} mi"
+                    })
+                
+                if metrics_data:
+                    metrics_df = pd.DataFrame(metrics_data)
+                    
+                    col1, col2 = st.columns([1, 1])
+                    
+                    with col1:
+                        st.markdown("#### 📊 Performance Metrics Table")
+                        st.dataframe(
+                            metrics_df,
+                            use_container_width=True,
+                            height=300,
+                            column_config={
+                                "Athlete": st.column_config.TextColumn("Athlete", width="medium"),
+                                "Total Rides": st.column_config.NumberColumn("Rides", width="small"),
+                                "Avg Speed": st.column_config.TextColumn("Avg Speed", width="small"),
+                                "Max Speed": st.column_config.TextColumn("Max Speed", width="small"),
+                                "Avg Power": st.column_config.TextColumn("Avg Power", width="small"),
+                                "Total Energy": st.column_config.TextColumn("Energy", width="small"),
+                                "Avg Ride Distance": st.column_config.TextColumn("Avg Distance", width="small"),
+                            }
+                        )
+                    
+                    with col2:
+                        # Performance comparison charts
+                        st.markdown("#### 📈 Performance Comparison")
+                        
+                        # Speed comparison chart
+                        speed_data = []
+                        for athlete, metrics in cycling_metrics.items():
+                            if metrics['avg_speed_mph'] > 0:
+                                speed_data.append({
+                                    'Athlete': athlete,
+                                    'Avg Speed (mph)': metrics['avg_speed_mph'],
+                                    'Max Speed (mph)': metrics['max_speed_mph']
+                                })
+                        
+                        if speed_data:
+                            speed_df = pd.DataFrame(speed_data)
+                            fig_speed = px.bar(
+                                speed_df,
+                                x='Athlete',
+                                y=['Avg Speed (mph)', 'Max Speed (mph)'],
+                                title="Speed Comparison",
+                                color_discrete_sequence=['#4ade80', '#00d4ff'],
+                                barmode='group'
+                            )
+                            
+                            fig_speed.update_layout(
+                                plot_bgcolor='rgba(0,0,0,0)',
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                font=dict(color='white'),
+                                xaxis=dict(gridcolor='rgba(128,128,128,0.2)', title_font=dict(color='white')),
+                                yaxis=dict(gridcolor='rgba(128,128,128,0.2)', title_font=dict(color='white')),
+                                legend=dict(font=dict(color='white')),
+                                height=250,
+                                margin=dict(l=40, r=40, t=60, b=40)
+                            )
+                            
+                            st.plotly_chart(fig_speed, use_container_width=True)
+                        
+                        # Power comparison chart (if data available)
+                        power_data = []
+                        for athlete, metrics in cycling_metrics.items():
+                            if metrics['avg_power_watts'] > 0:
+                                power_data.append({
+                                    'Athlete': athlete,
+                                    'Avg Power (W)': metrics['avg_power_watts'],
+                                    'Total Energy (kJ)': metrics['total_kilojoules'] / 100  # Scale down for display
+                                })
+                        
+                        if power_data:
+                            st.markdown("<br>", unsafe_allow_html=True)
+                            power_df = pd.DataFrame(power_data)
+                            fig_power = px.bar(
+                                power_df,
+                                x='Athlete', 
+                                y=['Avg Power (W)'],
+                                title="Power Output Comparison",
+                                color_discrete_sequence=['#fbbf24'],
+                            )
+                            
+                            fig_power.update_layout(
+                                plot_bgcolor='rgba(0,0,0,0)',
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                font=dict(color='white'),
+                                xaxis=dict(gridcolor='rgba(128,128,128,0.2)', title_font=dict(color='white')),
+                                yaxis=dict(gridcolor='rgba(128,128,128,0.2)', title_font=dict(color='white')),
+                                legend=dict(font=dict(color='white')),
+                                height=250,
+                                margin=dict(l=40, r=40, t=60, b=40)
+                            )
+                            
+                            st.plotly_chart(fig_power, use_container_width=True)
+                        else:
+                            st.info("📊 Power metrics will appear when power meter data is available")
+            else:
+                st.info("📊 Cycling performance metrics will appear when cycling activities are recorded")
             
             # Add a summary row with totals
             total_weekly_points = sum(s['weekly_zone_points'] for s in athlete_stats.values())
