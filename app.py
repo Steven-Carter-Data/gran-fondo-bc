@@ -3301,14 +3301,65 @@ def main():
                 
                 # Display with custom styling
                 st.dataframe(
-                    display_df, 
-                    use_container_width=True, 
+                    display_df,
+                    use_container_width=True,
                     hide_index=True,
                     height=400,
                     column_config={
                         "Date": st.column_config.TextColumn("Date", width="medium"),
                         "Activity": st.column_config.TextColumn("Activity", width="large"),
                     }
+                )
+
+                # Add CSV download functionality
+                if selected_athlete != "All Team Members":
+                    csv_filename = f"{selected_athlete.replace(' ', '_')}_activities_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.csv"
+                    download_label = f"📥 Download {selected_athlete}'s Activities (CSV)"
+                else:
+                    csv_filename = f"team_activities_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.csv"
+                    download_label = "📥 Download Team Activities (CSV)"
+
+                # Create CSV data from the original filtered_activities dataframe (with raw values)
+                csv_df = filtered_activities[['start_date', 'athlete_name', 'name', 'sport_type',
+                                             'distance', 'moving_time', 'average_heartrate',
+                                             'average_speed', 'total_elevation_gain']].copy()
+
+                # Format the CSV data with readable units but keep as numbers for Excel compatibility
+                csv_df['distance_miles'] = csv_df['distance'] / 1609.344
+                csv_df['moving_time_hours'] = csv_df['moving_time'] / 3600
+                csv_df['average_speed_mph'] = csv_df['average_speed'] * 2.23694  # m/s to mph
+                csv_df['elevation_feet'] = csv_df['total_elevation_gain'] * 3.28084
+
+                # Rename columns for CSV export
+                csv_df = csv_df.rename(columns={
+                    'start_date': 'Date',
+                    'athlete_name': 'Athlete',
+                    'name': 'Activity_Name',
+                    'sport_type': 'Sport_Type',
+                    'distance': 'Distance_Meters',
+                    'distance_miles': 'Distance_Miles',
+                    'moving_time': 'Moving_Time_Seconds',
+                    'moving_time_hours': 'Moving_Time_Hours',
+                    'average_heartrate': 'Average_HR_BPM',
+                    'average_speed': 'Average_Speed_MPS',
+                    'average_speed_mph': 'Average_Speed_MPH',
+                    'total_elevation_gain': 'Elevation_Gain_Meters',
+                    'elevation_feet': 'Elevation_Gain_Feet'
+                })
+
+                # Remove athlete column if viewing single athlete
+                if selected_athlete != "All Team Members":
+                    csv_df = csv_df.drop('Athlete', axis=1)
+
+                # Convert to CSV
+                csv = csv_df.to_csv(index=False)
+
+                st.download_button(
+                    label=download_label,
+                    data=csv,
+                    file_name=csv_filename,
+                    mime='text/csv',
+                    help=f"Download activities data from {start_date.strftime('%m/%d/%Y')} to {end_date.strftime('%m/%d/%Y')}"
                 )
                 
                 # Weekly cycling miles comparison chart
